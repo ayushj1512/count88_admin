@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -25,6 +26,21 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsDark(window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+      // Optional: listen to changes in dark mode
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = (e) => setIsDark(e.matches);
+      mediaQuery.addEventListener("change", handleChange);
+
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+  }, []);
+
   const salesData = [
     { month: "Jan", sales: 4000 },
     { month: "Feb", sales: 3000 },
@@ -39,6 +55,7 @@ export default function DashboardPage() {
     { name: "Pending", value: 200 },
     { name: "Cancelled", value: 100 },
   ];
+
   const COLORS = ["#22c55e", "#facc15", "#ef4444"];
 
   return (
@@ -56,17 +73,39 @@ export default function DashboardPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { title: "Approved Orders", value: "1,245", icon: <CheckCircle className="text-green-500 w-6 h-6" />, bg: "bg-green-50 dark:bg-green-900" },
-          { title: "Total Orders", value: "2,350", icon: <ShoppingCart className="text-blue-500 w-6 h-6" />, bg: "bg-blue-50 dark:bg-blue-900" },
-          { title: "Month Total", value: "₹85,000", icon: <DollarSign className="text-yellow-500 w-6 h-6" />, bg: "bg-yellow-50 dark:bg-yellow-900" },
-          { title: "Total Revenue", value: "₹12,40,000", icon: <DollarSign className="text-indigo-500 w-6 h-6" />, bg: "bg-indigo-50 dark:bg-indigo-900" },
+          {
+            title: "Approved Orders",
+            value: "1,245",
+            icon: <CheckCircle className="text-green-500 w-6 h-6" />,
+            bg: "bg-green-50 dark:bg-green-900",
+          },
+          {
+            title: "Total Orders",
+            value: "2,350",
+            icon: <ShoppingCart className="text-blue-500 w-6 h-6" />,
+            bg: "bg-blue-50 dark:bg-blue-900",
+          },
+          {
+            title: "Month Total",
+            value: "₹85,000",
+            icon: <DollarSign className="text-yellow-500 w-6 h-6" />,
+            bg: "bg-yellow-50 dark:bg-yellow-900",
+          },
+          {
+            title: "Total Revenue",
+            value: "₹12,40,000",
+            icon: <DollarSign className="text-indigo-500 w-6 h-6" />,
+            bg: "bg-indigo-50 dark:bg-indigo-900",
+          },
         ].map((card, index) => (
           <div
             key={index}
             className={`flex flex-col justify-between ${card.bg} p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300`}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium text-gray-600 dark:text-gray-300">{card.title}</h2>
+              <h2 className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                {card.title}
+              </h2>
               {card.icon}
             </div>
             <p className="text-2xl font-bold mt-3">{card.value}</p>
@@ -79,11 +118,20 @@ export default function DashboardPage() {
         <h2 className="text-lg font-semibold mb-4">Monthly Sales</h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={salesData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={window.matchMedia('(prefers-color-scheme: dark)').matches ? "#4b5563" : "#e5e7eb"} />
-            <XAxis dataKey="month" stroke={window.matchMedia('(prefers-color-scheme: dark)').matches ? "#d1d5db" : "#6b7280"} />
-            <YAxis stroke={window.matchMedia('(prefers-color-scheme: dark)').matches ? "#d1d5db" : "#6b7280"} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={isDark ? "#4b5563" : "#e5e7eb"}
+            />
+            <XAxis dataKey="month" stroke={isDark ? "#d1d5db" : "#6b7280"} />
+            <YAxis stroke={isDark ? "#d1d5db" : "#6b7280"} />
             <Tooltip />
-            <Line type="monotone" dataKey="sales" stroke="#3b82f6" strokeWidth={3} dot={{ r: 5 }} />
+            <Line
+              type="monotone"
+              dataKey="sales"
+              stroke="#3b82f6"
+              strokeWidth={3}
+              dot={{ r: 5 }}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>

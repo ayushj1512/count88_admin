@@ -34,26 +34,28 @@ export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const [open, setOpen] = useState(true);
   const [theme, setTheme] = useState("light");
+  const [mounted, setMounted] = useState(false);
 
-  // Detect screen size
+  // Only run window/localStorage related code on client
   useEffect(() => {
+    setMounted(true);
+
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
-  // Load theme from localStorage
-  useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme) {
       setTheme(savedTheme);
       document.documentElement.classList.toggle("dark", savedTheme === "dark");
     }
+
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Theme toggle
   const toggleTheme = () => {
+    if (!mounted) return; // prevent SSR issues
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
     document.documentElement.classList.toggle("dark", newTheme === "dark");
@@ -62,9 +64,11 @@ export default function Sidebar() {
 
   // Logout handler
   const handleLogout = () => {
-    // Add your logout logic here (e.g., remove auth tokens, redirect)
     console.log("Logout clicked");
   };
+
+  // Render nothing until mounted to avoid SSR errors
+  if (!mounted) return null;
 
   return (
     <>

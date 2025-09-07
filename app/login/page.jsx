@@ -1,13 +1,16 @@
 "use client";
+
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { User, Lock, Loader2 } from "lucide-react";
-import { Inter } from "next/font/google";
 
 // Import Great Vibes font
 import { Great_Vibes } from "next/font/google";
 const greatVibes = Great_Vibes({ subsets: ["latin"], weight: "400" });
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,7 +30,7 @@ export default function LoginPage() {
     // Fake delay for loader
     setTimeout(() => {
       setLoading(false);
-      window.location.href = "/dashboard"; // Dummy redirect
+      router.push("/dashboard"); // Client-side redirect
     }, 1500);
   };
 
