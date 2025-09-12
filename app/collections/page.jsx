@@ -11,7 +11,9 @@ export default function CollectionsPage() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = "http://localhost:5000/api/collections";
+  // ✅ Use base URL from .env
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_URL = `${API_BASE}/api/collections`;
 
   // Fetch all collections
   const fetchCollections = async () => {
@@ -36,14 +38,12 @@ export default function CollectionsPage() {
   useEffect(() => {
     let data = [...collections];
 
-    // Search filter
     if (search.trim()) {
       data = data.filter((col) =>
         col.title.toLowerCase().includes(search.toLowerCase())
       );
     }
 
-    // Sorting
     if (sort === "az") {
       data.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sort === "za") {
@@ -161,9 +161,8 @@ export default function CollectionsPage() {
         </form>
       </div>
 
-      {/* Filters: Search + Sort */}
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        {/* Search */}
         <div className="relative w-full sm:w-1/2">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
           <input
@@ -175,7 +174,6 @@ export default function CollectionsPage() {
           />
         </div>
 
-        {/* Sort */}
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
