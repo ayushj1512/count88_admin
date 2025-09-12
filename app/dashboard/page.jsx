@@ -1,5 +1,5 @@
 "use client";
-
+import DashboardStats from "../../components/dashboard/tags_collection_category_coupon"
 import { useState, useEffect } from "react";
 import {
   LineChart,
@@ -212,6 +212,8 @@ export default function DashboardPage() {
           </tbody>
         </table>
       </div>
+
+      <DashboardStats />
 
       {/* Overall Activity */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg hover:shadow-xl transition">

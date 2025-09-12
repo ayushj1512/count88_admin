@@ -17,6 +17,7 @@ import {
   FiTag,
   FiGift,
   FiLogOut,
+  FiGrid,
 } from "react-icons/fi";
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/categories", label: "Categories", icon: <FiLayers /> },
   { href: "/tags", label: "Tags", icon: <FiTag /> },
   { href: "/coupons", label: "Coupons", icon: <FiGift /> },
+  { href: "/collections", label: "Collections", icon: <FiGrid /> }, // ✅ Added
 ];
 
 export default function Sidebar() {
@@ -96,7 +98,9 @@ export default function Sidebar() {
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          {open && <h2 className="text-xl font-bold tracking-wide">Admin Panel</h2>}
+          {open && (
+            <h2 className="text-xl font-bold tracking-wide">Admin Panel</h2>
+          )}
           {!isMobile && (
             <button
               onClick={() => setOpen(!open)}
@@ -140,7 +144,9 @@ export default function Sidebar() {
           className="mt-2 px-2 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg flex items-center justify-center gap-2 transition text-sm text-gray-800 dark:text-gray-200"
         >
           {theme === "light" ? <FiMoon /> : <FiSun />}
-          {open && <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>}
+          {open && (
+            <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
+          )}
         </button>
       </aside>
     </>

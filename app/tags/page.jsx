@@ -1,24 +1,40 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 export default function TagsPage() {
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
   const [search, setSearch] = useState("");
   const [filterTag, setFilterTag] = useState("All");
   const [sortOrder, setSortOrder] = useState("asc");
 
-  const [tags, setTags] = useState([
-    { id: 1, name: "New Arrival" },
-    { id: 2, name: "Best Seller" },
-    { id: 3, name: "Discount" },
-    { id: 4, name: "Limited Edition" },
-    { id: 5, name: "Trending" },
-  ]);
+  const [tags, setTags] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [showDialog, setShowDialog] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [error, setError] = useState("");
 
+  // ✅ Fetch tags from backend
+  const fetchTags = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/api/tags`);
+      const data = await res.json();
+      setTags(data);
+    } catch (err) {
+      console.error("Failed to fetch tags:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTags();
+  }, []);
+
+  // ✅ Filter + sort logic
   const filteredTags = useMemo(() => {
     let filtered = tags.filter((tag) =>
       tag.name.toLowerCase().includes(search.toLowerCase())
@@ -37,33 +53,61 @@ export default function TagsPage() {
 
   const tagOptions = ["All", ...tags.map((t) => t.name)];
 
-  const handleAddTag = () => {
+  // ✅ Add tag via API
+  const handleAddTag = async () => {
     if (!newTag.trim()) {
       setError("Tag name cannot be empty");
       return;
     }
 
-    if (tags.some((t) => t.name.toLowerCase() === newTag.trim().toLowerCase())) {
-      setError("Tag already exists");
-      return;
-    }
+    try {
+      const res = await fetch(`${API_BASE}/api/tags`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newTag.trim() }),
+      });
 
-    setTags([...tags, { id: Date.now(), name: newTag.trim() }]);
-    setNewTag("");
-    setShowDialog(false);
-    setError("");
+      if (!res.ok) {
+        const errData = await res.json();
+        setError(errData.message || "Failed to add tag");
+        return;
+      }
+
+      await fetchTags();
+      setNewTag("");
+      setShowDialog(false);
+      setError("");
+    } catch (err) {
+      console.error("Failed to add tag:", err);
+      setError("Something went wrong");
+    }
   };
 
-  const handleDeleteTag = (id) => {
-    if (confirm("Are you sure you want to delete this tag?")) {
-      setTags(tags.filter((tag) => tag.id !== id));
+  // ✅ Delete tag via API
+  const handleDeleteTag = async (id) => {
+    if (!confirm("Are you sure you want to delete this tag?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/tags/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        alert(errData.message || "Failed to delete tag");
+        return;
+      }
+
+      await fetchTags();
+    } catch (err) {
+      console.error("Failed to delete tag:", err);
     }
   };
 
   return (
     <div className="p-6 space-y-6 min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-        Tags Management 
+        Tags Management
       </h1>
 
       {/* Controls */}
@@ -120,24 +164,40 @@ export default function TagsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {filteredTags.map((tag) => (
-              <tr key={tag.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="px-6 py-4 font-medium text-gray-800 dark:text-gray-100">
-                  {tag.name}
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <button
-                    onClick={() => handleDeleteTag(tag.id)}
-                    className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                  >
-                    Delete
-                  </button>
+            {loading ? (
+              <tr>
+                <td
+                  colSpan={2}
+                  className="px-6 py-4 text-center text-gray-500 dark:text-gray-300"
+                >
+                  Loading tags...
                 </td>
               </tr>
-            ))}
-            {filteredTags.length === 0 && (
+            ) : filteredTags.length > 0 ? (
+              filteredTags.map((tag) => (
+                <tr
+                  key={tag._id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <td className="px-6 py-4 font-medium text-gray-800 dark:text-gray-100">
+                    {tag.name}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={() => handleDeleteTag(tag._id)}
+                      className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
               <tr>
-                <td colSpan={2} className="px-6 py-4 text-center text-gray-500 dark:text-gray-300">
+                <td
+                  colSpan={2}
+                  className="px-6 py-4 text-center text-gray-500 dark:text-gray-300"
+                >
                   No tags found.
                 </td>
               </tr>
