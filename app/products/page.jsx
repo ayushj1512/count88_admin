@@ -1,21 +1,17 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ProductsPage() {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const router = useRouter();
 
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [sortField, setSortField] = useState("");
-  const [sortOrder, setSortOrder] = useState("asc");
-
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Fetch products from API
+  // ✅ Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -36,40 +32,32 @@ export default function ProductsPage() {
     fetchProducts();
   }, [API_BASE]);
 
-  // ✅ Filter & sort products
-  const filteredProducts = useMemo(() => {
-    let filtered = products.filter(
-      (p) =>
-        (p.name?.toLowerCase().includes(search.toLowerCase()) ||
-          p.brand?.toLowerCase().includes(search.toLowerCase()) ||
-          p.category?.toLowerCase().includes(search.toLowerCase())) &&
-        (categoryFilter === "All" || p.category === categoryFilter) &&
-        (statusFilter === "All" ||
-          (p.isActive ? "Active" : "Inactive") === statusFilter)
-    );
-
-    if (sortField) {
-      filtered.sort((a, b) => {
-        if (sortField === "price" || sortField === "stock") {
-          return sortOrder === "asc"
-            ? a[sortField] - b[sortField]
-            : b[sortField] - a[sortField];
-        } else {
-          return sortOrder === "asc"
-            ? a[sortField].localeCompare(b[sortField])
-            : b[sortField].localeCompare(a[sortField]);
-        }
+  // ✅ Delete product
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/products/${id}`, {
+        method: "DELETE",
       });
+      if (res.ok) {
+        setProducts((prev) => prev.filter((p) => p._id !== id));
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
     }
-    return filtered;
-  }, [products, search, categoryFilter, statusFilter, sortField, sortOrder]);
+  };
 
-  const categories = ["All", ...new Set(products.map((p) => p.category))];
-  const statuses = ["All", "Active", "Inactive"];
+  // ✅ Filter by search
+  const filteredProducts = products.filter(
+    (p) =>
+      p.name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.brand?.toLowerCase().includes(search.toLowerCase()) ||
+      p.category?.toLowerCase().includes(search.toLowerCase())
+  );
 
   if (loading) {
     return (
-      <div className="text-center text-gray-500 dark:text-gray-300 py-10">
+      <div className="text-center text-gray-500 py-10">
         Loading products...
       </div>
     );
@@ -78,162 +66,108 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-          Products Management
-        </h1>
-        <Link href="/products/addproducts">
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-            + Add Product
-          </button>
-        </Link>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Products</h1>
+        <a
+          href="/products/addproducts"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
+          + Add Product
+        </a>
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+      {/* Search */}
+      <div>
         <input
           type="text"
-          placeholder="Search by name, brand or category..."
+          placeholder="Search products..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-3 py-2 border rounded-lg w-full sm:w-1/3 focus:outline-none focus:ring bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-600 transition-colors"
+          className="px-3 py-2 border rounded-lg w-full sm:w-64"
         />
-
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:outline-none focus:ring bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-600 transition-colors"
-        >
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:outline-none focus:ring bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-600 transition-colors"
-        >
-          {statuses.map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={sortField}
-          onChange={(e) => setSortField(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:outline-none focus:ring bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-600 transition-colors"
-        >
-          <option value="">Sort By</option>
-          <option value="name">Name</option>
-          <option value="brand">Brand</option>
-          <option value="price">Price</option>
-        </select>
-
-        {sortField && (
-          <button
-            onClick={() =>
-              setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
-            }
-            className="px-3 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition"
-          >
-            {sortOrder === "asc" ? "Asc ⬆️" : "Desc ⬇️"}
-          </button>
-        )}
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow-md transition-colors">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              {[
-                "Image",
-                "Name",
-                "Brand",
-                "Category",
-                "Variants",
-                "Tags",
-                "Status",
-                "Actions",
-              ].map((title) => (
-                <th
-                  key={title}
-                  className="px-6 py-3 text-left font-semibold text-gray-600 dark:text-gray-200"
-                >
-                  {title}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {filteredProducts.map((product) => (
-              <tr
-                key={product._id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <td className="px-6 py-4">
+      {/* Product Grid */}
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {filteredProducts.length > 0 ? (
+          filteredProducts.map((product) => (
+            <div
+              key={product._id}
+              className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-3"
+            >
+              {/* All Images */}
+              <div className="grid grid-cols-3 gap-2">
+                {product.images?.length > 0 ? (
+                  product.images.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img.url}
+                      alt={`${product.name}-${idx}`}
+                      className="w-full h-24 object-cover rounded-lg border"
+                    />
+                  ))
+                ) : (
                   <img
-                    src={
-                      product.images?.[0]?.url || "https://via.placeholder.com/60"
-                    }
-                    alt={product.name}
-                    className="w-12 h-12 rounded-md object-cover"
+                    src="https://via.placeholder.com/150"
+                    alt="placeholder"
+                    className="w-full h-24 object-cover rounded-lg"
                   />
-                </td>
-                <td className="px-6 py-4 font-medium text-gray-800 dark:text-gray-100">
-                  {product.name}
-                </td>
-                <td className="px-6 py-4 text-gray-800 dark:text-gray-100">
-                  {product.brand}
-                </td>
-                <td className="px-6 py-4 text-gray-800 dark:text-gray-100">
-                  {product.category}
-                  {product.subcategory && ` / ${product.subcategory}`}
-                </td>
-                <td className="px-6 py-4 text-gray-800 dark:text-gray-100">
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="space-y-1">
+                <h2 className="font-bold text-lg">{product.name}</h2>
+                <p className="text-sm text-gray-600">{product.brand}</p>
+                <p className="text-sm">
+                  {product.category} / {product.subcategory}
+                </p>
+                <p className="text-sm">Gender: {product.gender}</p>
+                <p className="font-medium">
+                  Price: ₹{product.price}{" "}
+                  {product.discountPrice && (
+                    <span className="text-green-600 ml-2">
+                      ₹{product.discountPrice} (Discount)
+                    </span>
+                  )}
+                </p>
+                <p className="text-sm">
+                  Variants:{" "}
                   {product.variants?.map((v) => v.size).join(", ") || "—"}
-                </td>
-                <td className="px-6 py-4 text-gray-800 dark:text-gray-100">
-                  {product.tags?.length > 0 ? product.tags.join(", ") : "—"}
-                </td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                      product.isActive
-                        ? "bg-green-100 text-green-600 dark:bg-green-200 dark:text-green-700"
-                        : "bg-red-100 text-red-600 dark:bg-red-200 dark:text-red-700"
-                    }`}
+                </p>
+                <p className="text-sm">
+                  Tags:{" "}
+                  {product.tags?.length ? product.tags.join(", ") : "—"}
+                </p>
+                <span
+                  className={`inline-block px-2 py-1 rounded text-xs ${
+                    product.isActive ? "bg-green-200" : "bg-red-200"
+                  }`}
+                >
+                  {product.isActive ? "Active" : "Inactive"}
+                </span>
+
+                {/* Buttons */}
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => router.push(`/products/${product._id}/edit`)}
+                    className="flex-1 bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
                   >
-                    {product.isActive ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-center space-x-2">
-                  <button className="px-3 py-1 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition">
                     Edit
                   </button>
-                  <button className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                  <button
+                    onClick={() => handleDelete(product._id)}
+                    className="flex-1 bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                  >
                     Delete
                   </button>
-                </td>
-              </tr>
-            ))}
-            {filteredProducts.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="text-center px-6 py-4 text-gray-500 dark:text-gray-300"
-                >
-                  No products found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500">No products found.</p>
+        )}
       </div>
     </div>
   );

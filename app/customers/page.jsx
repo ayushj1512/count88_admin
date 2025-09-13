@@ -1,85 +1,83 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import * as XLSX from "xlsx";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function CustomersPage() {
-  // Dummy customers data
-  const [customers] = useState([
-    {
-      id: 1,
-      name: "Ayush Juneja",
-      email: "ayush@example.com",
-      phone: "9876543210",
-      totalOrders: 12,
-      totalSpent: 125000,
-      status: "Active",
-      registered: "2025-01-15",
-    },
-    {
-      id: 2,
-      name: "Simran Kaur",
-      email: "simran@example.com",
-      phone: "9123456780",
-      totalOrders: 5,
-      totalSpent: 49999,
-      status: "Inactive",
-      registered: "2025-03-05",
-    },
-    {
-      id: 3,
-      name: "Rohit Sharma",
-      email: "rohit@example.com",
-      phone: "9988776655",
-      totalOrders: 8,
-      totalSpent: 74999,
-      status: "Active",
-      registered: "2025-02-20",
-    },
-    {
-      id: 4,
-      name: "Priya Singh",
-      email: "priya@example.com",
-      phone: "9871234560",
-      totalOrders: 3,
-      totalSpent: 29999,
-      status: "Active",
-      registered: "2025-05-10",
-    },
-    {
-      id: 5,
-      name: "Aman Verma",
-      email: "aman@example.com",
-      phone: "9123450000",
-      totalOrders: 7,
-      totalSpent: 89999,
-      status: "Inactive",
-      registered: "2025-04-12",
-    },
-  ]);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortKey, setSortKey] = useState("");
 
-  const filteredCustomers = useMemo(() => {
-    let filtered = customers;
+  // ✅ Fetch customers from backend (via /api/orders)
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/api/orders`);
+      if (!res.ok) throw new Error("Failed to fetch customers");
 
-    // Search
+      const data = await res.json();
+
+      // 🧾 Transform orders → customers summary
+      const customerMap = {};
+      data.forEach((order) => {
+        const {
+          customerName,
+          customerEmail,
+          customerMobile,
+          totalAmount,
+          createdAt,
+        } = order;
+
+        if (!customerMap[customerEmail]) {
+          customerMap[customerEmail] = {
+            id: customerEmail,
+            name: customerName,
+            email: customerEmail,
+            phone: customerMobile,
+            totalOrders: 0,
+            totalSpent: 0,
+            status: "Active", // default
+            registered: new Date(createdAt).toISOString().split("T")[0],
+          };
+        }
+        customerMap[customerEmail].totalOrders += 1;
+        customerMap[customerEmail].totalSpent += totalAmount;
+      });
+
+      setCustomers(Object.values(customerMap));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  // ✅ Filter + sort customers
+  const filteredCustomers = useMemo(() => {
+    let filtered = [...customers];
+
     if (searchTerm) {
       filtered = filtered.filter(
         (c) =>
-          c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.phone.includes(searchTerm)
+          c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          c.phone?.includes(searchTerm)
       );
     }
 
-    // Status filter
     if (statusFilter !== "All") {
       filtered = filtered.filter((c) => c.status === statusFilter);
     }
 
-    // Sorting
     if (sortKey === "orders") {
       filtered = filtered.sort((a, b) => b.totalOrders - a.totalOrders);
     } else if (sortKey === "spent") {
@@ -93,11 +91,70 @@ export default function CustomersPage() {
     return filtered;
   }, [customers, searchTerm, statusFilter, sortKey]);
 
+  // ✅ Export to Excel
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(
+      filteredCustomers.map((c) => ({
+        Name: c.name,
+        Email: c.email,
+        Phone: c.phone,
+        "Total Orders": c.totalOrders,
+        "Total Spent": c.totalSpent,
+        Status: c.status,
+        Registered: c.registered,
+      }))
+    );
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Customers");
+    XLSX.writeFile(workbook, "customers.xlsx");
+  };
+
+  // ✅ Export to CSV
+  const exportToCSV = () => {
+    const worksheet = XLSX.utils.json_to_sheet(
+      filteredCustomers.map((c) => ({
+        Name: c.name,
+        Email: c.email,
+        Phone: c.phone,
+        "Total Orders": c.totalOrders,
+        "Total Spent": c.totalSpent,
+        Status: c.status,
+        Registered: c.registered,
+      }))
+    );
+    const csv = XLSX.utils.sheet_to_csv(worksheet);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "customers.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-6 space-y-6 min-h-screen bg-gray-50 dark:bg-gray-900">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-        Customers Management 
-      </h1>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+          Customers Management
+        </h1>
+        <div className="flex gap-2">
+          <button
+            onClick={exportToExcel}
+            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
+          >
+            📊 Export Excel
+          </button>
+          <button
+            onClick={exportToCSV}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
+          >
+            📑 Export CSV
+          </button>
+        </div>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
@@ -139,66 +196,56 @@ export default function CustomersPage() {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-6 py-3 text-left font-semibold text-gray-600 dark:text-gray-200">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-600 dark:text-gray-200">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-600 dark:text-gray-200">
-                Phone
-              </th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-600 dark:text-gray-200">
-                Total Orders
-              </th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-600 dark:text-gray-200">
-                Total Spent
-              </th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-600 dark:text-gray-200">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-600 dark:text-gray-200">
-                Registered
-              </th>
-              <th className="px-6 py-3 text-center font-semibold text-gray-600 dark:text-gray-200">
-                Actions
-              </th>
+              <th className="px-6 py-3 text-left font-semibold">Name</th>
+              <th className="px-6 py-3 text-left font-semibold">Email</th>
+              <th className="px-6 py-3 text-left font-semibold">Phone</th>
+              <th className="px-6 py-3 text-left font-semibold">Total Orders</th>
+              <th className="px-6 py-3 text-left font-semibold">Total Spent</th>
+              <th className="px-6 py-3 text-left font-semibold">Status</th>
+              <th className="px-6 py-3 text-left font-semibold">Registered</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {filteredCustomers.map((customer) => (
-              <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="px-6 py-4 font-medium text-gray-800 dark:text-gray-100">{customer.name}</td>
-                <td className="px-6 py-4 text-gray-800 dark:text-gray-100">{customer.email}</td>
-                <td className="px-6 py-4 text-gray-800 dark:text-gray-100">{customer.phone}</td>
-                <td className="px-6 py-4 text-gray-800 dark:text-gray-100">{customer.totalOrders}</td>
-                <td className="px-6 py-4 font-semibold text-gray-800 dark:text-gray-100">₹{customer.totalSpent}</td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                      customer.status === "Active"
-                        ? "bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-400"
-                        : "bg-red-100 text-red-600 dark:bg-red-800 dark:text-red-400"
-                    }`}
-                  >
-                    {customer.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-gray-800 dark:text-gray-100">{customer.registered}</td>
-                <td className="px-6 py-4 text-center space-x-2">
-                  <button className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
-                    View
-                  </button>
-                  <button className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
-                    Disable
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filteredCustomers.length === 0 && (
+            {loading ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={7}
+                  className="text-center px-6 py-4 text-gray-500 dark:text-gray-400"
+                >
+                  Loading customers...
+                </td>
+              </tr>
+            ) : filteredCustomers.length > 0 ? (
+              filteredCustomers.map((customer) => (
+                <tr
+                  key={customer.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <td className="px-6 py-4 font-medium">{customer.name}</td>
+                  <td className="px-6 py-4">{customer.email}</td>
+                  <td className="px-6 py-4">{customer.phone}</td>
+                  <td className="px-6 py-4">{customer.totalOrders}</td>
+                  <td className="px-6 py-4 font-semibold">
+                    ₹{customer.totalSpent}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                        customer.status === "Active"
+                          ? "bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-400"
+                          : "bg-red-100 text-red-600 dark:bg-red-800 dark:text-red-400"
+                      }`}
+                    >
+                      {customer.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">{customer.registered}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={7}
                   className="text-center px-6 py-4 text-gray-500 dark:text-gray-400"
                 >
                   No customers found.

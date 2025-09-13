@@ -28,10 +28,10 @@ export default function TagSelector({ selectedTags = [], onChange }) {
   // ✅ Toggle tag selection
   const toggleTag = (tag) => {
     let updated;
-    if (selectedTags.includes(tag)) {
-      updated = selectedTags.filter((t) => t !== tag);
+    if (selectedTags.includes(tag.name)) {
+      updated = selectedTags.filter((t) => t !== tag.name);
     } else {
-      updated = [...selectedTags, tag];
+      updated = [...selectedTags, tag.name];
     }
     onChange(updated);
   };
@@ -47,17 +47,18 @@ export default function TagSelector({ selectedTags = [], onChange }) {
       <label className="block text-gray-700 dark:text-gray-200 font-medium">
         Select Tags
       </label>
+
       <div className="flex flex-wrap gap-2">
         {tags.length > 0 ? (
           tags.map((tag) => (
             <button
               key={tag._id}
               type="button"
-              onClick={() => toggleTag(tag.name)}
+              onClick={() => toggleTag(tag)}
               className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
                 selectedTags.includes(tag.name)
                   ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-400 dark:border-gray-600 hover:bg-gray-300 dark:hover:bg-gray-600"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
             >
               {tag.name}
@@ -69,6 +70,25 @@ export default function TagSelector({ selectedTags = [], onChange }) {
           </p>
         )}
       </div>
+
+      {/* ✅ Show selected tags summary */}
+      {selectedTags.length > 0 && (
+        <div className="mt-3">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+            Selected Tags:
+          </p>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {selectedTags.map((t) => (
+              <span
+                key={t}
+                className="px-2 py-1 text-xs bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 rounded-full"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

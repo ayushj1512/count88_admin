@@ -1,12 +1,12 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import TagsInput from "@/components/add-product/tags";
+import TagSelector from "@/components/add-product/TagSelector";
 import CollectionChooser from "@/components/add-product/CollectionChooser";
 import CategorySelector from "@/components/add-product/CategorySelector";
-import SizeSelector from "@/components/add-product/sizeSelector";
+import SizeSelector from "@/components/add-product/SizeSelector";
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -17,14 +17,13 @@ export default function AddProductPage() {
     category: "Footwear",
     subcategory: "",
     gender: "Men",
-    material: "",
-    style: "",
     collection: "",
+    price: "",
+    discountPrice: "",
     tags: [],
     isActive: true,
   });
 
-  // initially all sizes selected
   const [selectedSizes, setSelectedSizes] = useState([
     "UK 3",
     "UK 4",
@@ -37,33 +36,54 @@ export default function AddProductPage() {
 
   const [images, setImages] = useState([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handle = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleImageChange = (e) => {
-    setImages([...images, ...Array.from(e.target.files)]);
+    setImages((prev) => [...prev, ...Array.from(e.target.files)]);
   };
 
-  const removeImage = (i) => setImages(images.filter((_, x) => x !== i));
+  const removeImage = (i) => {
+    setImages((prev) => prev.filter((_, idx) => idx !== i));
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    const need = ["groupId", "name", "brand", "category", "gender"];
-    for (let f of need) if (!form[f]) return setError(`${f} required`);
-    if (!selectedSizes.length) return setError("At least one size required");
-    if (!images.length) return setError("At least one image required");
+    const need = ["groupId", "name", "brand", "category", "gender", "price"];
+    for (let f of need) {
+      if (!form[f]) {
+        setLoading(false);
+        return setError(`${f} is required`);
+      }
+    }
+    if (!selectedSizes.length) {
+      setLoading(false);
+      return setError("At least one size required");
+    }
+    if (!images.length) {
+      setLoading(false);
+      return setError("At least one image required");
+    }
 
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) =>
         fd.append(k, Array.isArray(v) ? JSON.stringify(v) : v)
       );
-      fd.append("variants", JSON.stringify(selectedSizes.map((s) => ({ size: s }))));
+      fd.append(
+        "variants",
+        JSON.stringify(selectedSizes.map((s) => ({ size: s })))
+      );
       images.forEach((img) => fd.append("images", img));
 
       const res = await fetch(`${API_BASE}/api/products`, {
@@ -73,10 +93,13 @@ export default function AddProductPage() {
 
       if (!res.ok) throw new Error("Failed to save");
       await res.json();
+
       alert("✅ Product saved!");
       router.push("/products");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,19 +112,20 @@ export default function AddProductPage() {
       >
         {error && <p className="text-red-500">{error}</p>}
 
-        {/* Basic fields */}
+        {/* Basic Fields */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             ["groupId", "Group ID"],
             ["name", "Product Name"],
             ["brand", "Brand"],
-            ["material", "Material"],
-            ["style", "Style"],
+            ["price", "Price"],
+            ["discountPrice", "Discount Price"],
           ].map(([f, label]) => (
             <div key={f}>
               <label className={lbl}>{label}</label>
               <input
                 name={f}
+                type={f.toLowerCase().includes("price") ? "number" : "text"}
                 value={form[f]}
                 onChange={handle}
                 className={inp}
@@ -142,13 +166,13 @@ export default function AddProductPage() {
           }
         />
 
-        {/* Tags Input */}
-        <TagsInput
-          tags={form.tags}
+        {/* Tag Selector */}
+        <TagSelector
+          selectedTags={form.tags}
           onChange={(tags) => setForm((prev) => ({ ...prev, tags }))}
         />
 
-        {/* Size Selector (Variants) */}
+        {/* Size Selector */}
         <SizeSelector
           selectedSizes={selectedSizes}
           setSelectedSizes={setSelectedSizes}
@@ -167,6 +191,7 @@ export default function AddProductPage() {
               onChange={handleImageChange}
             />
           </label>
+
           <div className="grid grid-cols-3 gap-3 mt-3">
             {images.map((img, i) => (
               <div key={i} className="relative">
@@ -187,7 +212,7 @@ export default function AddProductPage() {
           </div>
         </div>
 
-        {/* Active */}
+        {/* Active checkbox */}
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -198,16 +223,30 @@ export default function AddProductPage() {
           Active
         </label>
 
-        <button type="submit" className={btnPri}>
-          Save Product
+        {/* Submit */}
+        <button
+          type="submit"
+          className={`${btnPri} flex items-center justify-center gap-2`}
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+              Saving...
+            </>
+          ) : (
+            "Save Product"
+          )}
         </button>
       </form>
     </div>
   );
 }
 
-/* styles */
+/* Tailwind styles */
 const inp = "border rounded px-3 py-2 w-full dark:bg-gray-700 dark:text-white";
 const lbl = "block text-sm font-medium mb-1";
 const btnBase = "px-3 py-2 rounded text-sm font-medium";
-const btnPri = btnBase + " bg-blue-600 text-white hover:bg-blue-700";
+const btnPri =
+  btnBase +
+  " bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed";
