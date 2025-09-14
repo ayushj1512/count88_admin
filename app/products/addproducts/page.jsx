@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import TagSelector from "@/components/add-product/TagSelector";
 import CollectionChooser from "@/components/add-product/CollectionChooser";
 import CategorySelector from "@/components/add-product/CategorySelector";
-import SizeSelector from "@/components/add-product/SizeSelector";
+import SizeSelector from "@/components/add-product/sizeSelector";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
