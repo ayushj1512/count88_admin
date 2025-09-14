@@ -28,7 +28,8 @@ const navItems = [
   { href: "/categories", label: "Categories", icon: <FiLayers /> },
   { href: "/tags", label: "Tags", icon: <FiTag /> },
   { href: "/coupons", label: "Coupons", icon: <FiGift /> },
-  { href: "/collections", label: "Collections", icon: <FiGrid /> }, // ✅ Added
+  { href: "/collections", label: "Collections", icon: <FiGrid /> },
+  { href: "/users", label: "Users", icon: <FiUsers /> }, // ✅ Added Users
 ];
 
 export default function Sidebar() {
@@ -38,7 +39,6 @@ export default function Sidebar() {
   const [theme, setTheme] = useState("light");
   const [mounted, setMounted] = useState(false);
 
-  // Only run window/localStorage related code on client
   useEffect(() => {
     setMounted(true);
 
@@ -55,21 +55,18 @@ export default function Sidebar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Theme toggle
   const toggleTheme = () => {
-    if (!mounted) return; // prevent SSR issues
+    if (!mounted) return;
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
     document.documentElement.classList.toggle("dark", newTheme === "dark");
     localStorage.setItem("theme", newTheme);
   };
 
-  // Logout handler
   const handleLogout = () => {
     console.log("Logout clicked");
   };
 
-  // Render nothing until mounted to avoid SSR errors
   if (!mounted) return null;
 
   return (

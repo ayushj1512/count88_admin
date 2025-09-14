@@ -14,6 +14,7 @@ export default function AddProductPage() {
     groupId: "",
     name: "",
     brand: "",
+    description: "", // 🔹 added field
     category: "Footwear",
     subcategory: "",
     gender: "Men",
@@ -147,6 +148,19 @@ export default function AddProductPage() {
               ))}
             </select>
           </div>
+        </div>
+
+        {/* 🔹 Description */}
+        <div>
+          <label className={lbl}>Description</label>
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={handle}
+            rows={4}
+            className={inp}
+            placeholder="Enter product description..."
+          />
         </div>
 
         {/* Category Selector */}
