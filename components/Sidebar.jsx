@@ -18,6 +18,7 @@ import {
   FiGift,
   FiLogOut,
   FiGrid,
+  FiMail, // ✅ Added for Queries
 } from "react-icons/fi";
 
 const navItems = [
@@ -29,7 +30,8 @@ const navItems = [
   { href: "/tags", label: "Tags", icon: <FiTag /> },
   { href: "/coupons", label: "Coupons", icon: <FiGift /> },
   { href: "/collections", label: "Collections", icon: <FiGrid /> },
-  { href: "/users", label: "Users", icon: <FiUsers /> }, // ✅ Added Users
+  { href: "/users", label: "Users", icon: <FiUsers /> },
+  { href: "/queries", label: "Queries", icon: <FiMail /> }, // ✅ New Queries section
 ];
 
 export default function Sidebar() {

@@ -11,7 +11,7 @@ export default function OrdersPage() {
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-  // Fetch from API
+  // Fetch orders from API
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -27,11 +27,11 @@ export default function OrdersPage() {
     fetchOrders();
   }, [API_BASE_URL]);
 
-  // Filter + sort
+  // Filter and sort
   const filteredOrders = useMemo(() => {
     let filtered = [...orders];
 
-    // Search
+    // Search by customer or product
     if (searchTerm) {
       filtered = filtered.filter(
         (o) =>
@@ -42,7 +42,7 @@ export default function OrdersPage() {
       );
     }
 
-    // Status filter
+    // Filter by order status
     if (statusFilter !== "All") {
       filtered = filtered.filter((o) => o.orderStatus === statusFilter);
     }
@@ -109,6 +109,7 @@ export default function OrdersPage() {
                 "Products",
                 "Quantity",
                 "Amount",
+                "Shipping",
                 "Payment",
                 "Status",
                 "Date",
@@ -127,7 +128,7 @@ export default function OrdersPage() {
             {loading ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={10}
                   className="text-center px-6 py-4 text-gray-500 dark:text-gray-300"
                 >
                   Loading orders...
@@ -139,19 +140,24 @@ export default function OrdersPage() {
                   key={order._id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  {/* ✅ show new custom orderId */}
                   <td className="px-6 py-4 font-medium">{order.orderId}</td>
 
                   <td className="px-6 py-4">{order.customerName}</td>
 
                   <td className="px-6 py-4">
-                    {order.products.map((p) => p.name).join(", ")}
+                    {order.products
+                      .map((p) => `${p.name} (${p.size})`)
+                      .join(", ")}
                   </td>
 
                   <td className="px-6 py-4">{order.totalQuantity}</td>
 
                   <td className="px-6 py-4 font-semibold">
                     ₹{order.totalAmount}
+                  </td>
+
+                  <td className="px-6 py-4 font-semibold">
+                    ₹{order.shippingAmount}
                   </td>
 
                   <td className="px-6 py-4">{order.paymentMethod}</td>
@@ -194,7 +200,7 @@ export default function OrdersPage() {
             ) : (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={10}
                   className="text-center px-6 py-4 text-gray-500 dark:text-gray-300"
                 >
                   No orders found.
